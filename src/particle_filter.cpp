@@ -17,6 +17,56 @@
 #include "particle_filter.h"
 
 
+int findNearestLandmark(const double& x_p, const double& y_p, const Map& map) {
+
+  std::vector<double> distances;
+  for (auto& landmark : map.landmark_list) {
+
+    double distance = dist(x_p, y_p, landmark.x_f, landmark.y_f);
+    distances.push_back(distance);
+
+  }
+
+  auto nearest = std::min_element(distances.begin(), distances.end()) - distances.begin();
+
+  return (int)nearest;
+
+}
+
+
+double gaussian2D(double x, double y, double mu_x, double mu_y, double std_x, double std_y) {
+
+  double a = 1. / (2. * M_PI * std_x * std_y);
+
+  double diff_x = x - mu_x;
+  double diff_y = y - mu_y;
+
+  double b1 = (diff_x * diff_x) / (2 * std_x * std_x);
+  double b2 = (diff_y * diff_y) / (2 * std_y * std_y);
+
+  return a * exp(-(b1 + b2));
+
+}
+
+
+void updateParticleWeight(Particle* p, const Map& map, double std_landmark_x, double std_landmark_y) {
+
+  for (unsigned int i = 0; i < p->associations.size(); i++) {
+
+    auto landmark = map.landmark_list[i];
+
+    double x = p->sense_x[i];
+    double y = p->sense_y[i];
+
+    double prob = gaussian2D(x, y, landmark.x_f, landmark.y_f, std_landmark_x, std_landmark_y);
+
+    p->weight *= prob;
+
+  }
+
+}
+
+
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
   // TODO Has to be implemented
@@ -128,23 +178,26 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
   for (Particle& p : particles) {
 
-    std::vector<LandmarkObs> predicted;
+    p.sense_x.clear();
+    p.sense_y.clear();
+    p.associations.clear();
+
     for (const LandmarkObs& obs : observations) {
 
-      LandmarkObs obs_p{};
-      obs_p.id = obs.id;
-      obs_p.x = cos(p.theta) * obs.x - sin(p.theta) * obs.y + p.x;
-      obs_p.y = sin(p.theta) * obs.x + cos(p.theta) * obs.y + p.y;
+      double x = cos(p.theta) * obs.x - sin(p.theta) * obs.y + p.x;
+      double y = sin(p.theta) * obs.x + cos(p.theta) * obs.y + p.y;
 
-      predicted.push_back(obs_p);
+      p.sense_x.push_back(x);
+      p.sense_y.push_back(y);
+
+      int assoc = findNearestLandmark(x, y, map_landmarks);
+      p.associations.push_back(assoc);
 
     }
 
+    updateParticleWeight(&p, map_landmarks, std_landmark[0], std_landmark[1]);
 
   }
-
-
-
 
 }
 

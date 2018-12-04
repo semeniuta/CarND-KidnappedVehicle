@@ -23,6 +23,11 @@ struct Particle {
 
 };
 
+int findNearestLandmark(const double& x_p, const double& y_p, const Map& map);
+
+double gaussian2D(double x, double y, double mu_x, double mu_y, double std_x, double std_y);
+
+void updateParticleWeight(Particle* p, const Map& map, double std_landmark_x, double std_landmark_y);
 
 class ParticleFilter {
 
