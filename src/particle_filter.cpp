@@ -33,9 +33,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   double std_y = std[1];
   double std_theta = std[2];
 
-  std::normal_distribution<double> dist_x(x, std_x);
-  std::normal_distribution<double> dist_y(y, std_y);
-  std::normal_distribution<double> dist_theta(theta, std_theta);
+  std::normal_distribution<double> dist_x{x, std_x};
+  std::normal_distribution<double> dist_y{y, std_y};
+  std::normal_distribution<double> dist_theta{theta, std_theta};
 
   double sample_x, sample_y, sample_theta;
 
@@ -68,6 +68,35 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   // http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
   // http://www.cplusplus.com/reference/random/default_random_engine/
 
+  std::default_random_engine gen{};
+
+  double std_x = std_pos[0];
+  double std_y = std_pos[1];
+  double std_theta = std_pos[2];
+
+  std::normal_distribution<double> dist_x{0, std_x};
+  std::normal_distribution<double> dist_y{0, std_y};
+  std::normal_distribution<double> dist_theta{0, std_theta};
+
+  for (Particle& p : particles) {
+
+    double vt = velocity / yaw_rate;
+    double ydt = yaw_rate * delta_t;
+
+    double inc_x = vt * (sin(p.theta + ydt) - sin(p.theta));
+    double inc_y = vt * (cos(p.theta) - cos(p.theta + ydt));
+    double inc_theta = p.theta;
+
+    double noise_x = dist_x(gen);
+    double noise_y = dist_y(gen);
+    double noise_theta = dist_theta(gen);
+
+    p.x += (inc_x + noise_x);
+    p.y += (inc_y + noise_y);
+    p.theta += (inc_theta + noise_theta);
+
+  }
+
 }
 
 
@@ -78,6 +107,8 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
   // observed measurement to this particular landmark.
   // NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
   // implement this method and use it as a helper during the updateWeights phase.
+
+  // TODO What are `predicted` and how to use them?
 
 }
 
@@ -94,6 +125,27 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   // https://www.willamette.edu/~gorr/classes/GeneralGraphics/Transforms/transforms2d.htm
   // and the following is a good resource for the actual equation to implement (look at equation 3.33)
   // http://planning.cs.uiuc.edu/node99.html
+
+  for (Particle& p : particles) {
+
+    std::vector<LandmarkObs> predicted;
+    for (const LandmarkObs& obs : observations) {
+
+      LandmarkObs obs_p{};
+      obs_p.id = obs.id;
+      obs_p.x = cos(p.theta) * obs.x - sin(p.theta) * obs.y + p.x;
+      obs_p.y = sin(p.theta) * obs.x + cos(p.theta) * obs.y + p.y;
+
+      predicted.push_back(obs_p);
+
+    }
+
+
+  }
+
+
+
+
 }
 
 
