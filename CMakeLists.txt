@@ -9,20 +9,19 @@ set(CMAKE_CXX_FLAGS "${CXX_FLAGS}")
 
 set(sources src/particle_filter.cpp src/main.cpp)
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
+    include_directories(/usr/local/include)
+    include_directories(/usr/local/opt/openssl/include)
+    link_directories(/usr/local/lib)
+    link_directories(/usr/local/opt/openssl/lib)
 
-include_directories(/usr/local/include)
-include_directories(/usr/local/opt/openssl/include)
-link_directories(/usr/local/lib)
-link_directories(/usr/local/opt/openssl/lib)
-link_directories(/usr/local/Cellar/libuv/1*/lib)
+    file(GLOB LIBUV_DIR /usr/local/Cellar/libuv/1*/lib)
+    link_directories(${LIBUV_DIR})
 
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 
-
 add_executable(particle_filter ${sources})
-
 
 target_link_libraries(particle_filter z ssl uv uWS)
 
