@@ -209,6 +209,27 @@ void ParticleFilter::resample() {
   // NOTE: You may find std::discrete_distribution helpful here.
   // http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
+  std::vector<double> current_weights;
+  for (const Particle& p : particles) {
+    current_weights.push_back(p.weight);
+  }
+
+  std::default_random_engine gen{};
+  std::discrete_distribution<int> distrib{current_weights.begin(), current_weights.end()};
+
+  std::vector<Particle> resampled_particles;
+  int idx;
+  for (unsigned int i = 0; i < particles.size(); i++) {
+
+    idx = distrib(gen);
+    Particle p{particles[idx]};
+
+    resampled_particles.push_back(p);
+
+  }
+
+  particles = resampled_particles;
+
 }
 
 
