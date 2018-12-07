@@ -45,6 +45,12 @@ int main() {
 
   updateParticleWeight(&p, landmarks, 0.3, 0.3);
 
+  // Expected probabilities of observations:
+  // 6.84e-03
+  // 6.84e-03
+  // 9.83e-49
+  // Particle weight: 4.60e-53
+
   // ========
 
   double dt = 0.1;
@@ -59,8 +65,7 @@ int main() {
     std::cout << val << "\n";
   }
 
-
-
-
+  // Expected values of x, y, theta:
+  // 97.59204608, 75.07741997,  2.00276532
 
 }
