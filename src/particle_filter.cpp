@@ -16,6 +16,35 @@
 
 #include "particle_filter.h"
 
+std::vector<double> simple_predict(const std::vector<double>& pose, double velocity, double yaw_rate, double delta_t) {
+
+  double x = pose[0];
+  double y = pose[1];
+  double theta = pose[2];
+
+  double vt = velocity / yaw_rate;
+  double ydt = yaw_rate * delta_t;
+
+  double inc_x = vt * (sin(theta + ydt) - sin(theta));
+  double inc_y = vt * (cos(theta) - cos(theta + ydt));
+  double inc_theta = ydt;
+
+  x += inc_x;
+  y += inc_y;
+  theta += inc_theta;
+
+  return std::vector<double>{x, y, theta};
+
+}
+
+std::pair<double, double > transform(const LandmarkObs& obs, const Particle& p) {
+
+  double x = cos(p.theta) * obs.x - sin(p.theta) * obs.y + p.x;
+  double y = sin(p.theta) * obs.x + cos(p.theta) * obs.y + p.y;
+
+  return std::pair<double, double>{x, y};
+
+}
 
 int findNearestLandmark(const double& x_p, const double& y_p, const Map& map) {
 
@@ -36,24 +65,29 @@ int findNearestLandmark(const double& x_p, const double& y_p, const Map& map) {
 
 double gaussian2D(double x, double y, double mu_x, double mu_y, double std_x, double std_y) {
 
-  double a = 1. / (2. * M_PI * std_x * std_y);
+  long double a = 1. / (2. * M_PI * std_x * std_y);
 
-  double diff_x = x - mu_x;
-  double diff_y = y - mu_y;
+  long double diff_x = x - mu_x;
+  long double diff_y = y - mu_y;
 
-  double b1 = (diff_x * diff_x) / (2 * std_x * std_x);
-  double b2 = (diff_y * diff_y) / (2 * std_y * std_y);
+  long double b1 = (diff_x * diff_x) / (2 * std_x * std_x);
+  long double b2 = (diff_y * diff_y) / (2 * std_y * std_y);
 
-  return a * exp(-(b1 + b2));
+  long double prob = a * std::exp(-(b1 + b2));
+
+  return (double)prob;
 
 }
 
 
 void updateParticleWeight(Particle* p, const Map& map, double std_landmark_x, double std_landmark_y) {
 
+  p->weight = 1.;
+
   for (unsigned int i = 0; i < p->associations.size(); i++) {
 
-    auto landmark = map.landmark_list[i];
+    int landmark_idx = p->associations[i];
+    auto landmark = map.landmark_list[landmark_idx];
 
     double x = p->sense_x[i];
     double y = p->sense_y[i];
@@ -62,7 +96,11 @@ void updateParticleWeight(Particle* p, const Map& map, double std_landmark_x, do
 
     p->weight *= prob;
 
+    std::cout << prob << ", " << p->weight << "\n";
+
   }
+
+  std::cout << "=====\n";
 
 }
 
@@ -75,7 +113,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   // Add random Gaussian noise to each particle.
   // NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
-  num_particles_ = 1000;
+  std::cout << "Init called\n";
+
+  num_particles_ = 20;
 
   std::default_random_engine gen{};
 
@@ -103,9 +143,13 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     p.weight = 1.;
 
     particles.push_back(p);
+
   }
 
   is_initialized_ = true;
+
+  normalize();
+  //printWeights();
 
 }
 
@@ -117,6 +161,8 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   // NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
   // http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
   // http://www.cplusplus.com/reference/random/default_random_engine/
+
+  std::cout << "Prediction called with yaw rate" << yaw_rate << "\n";
 
   std::default_random_engine gen{};
 
@@ -130,25 +176,22 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
   for (Particle& p : particles) {
 
-    double vt = velocity / yaw_rate;
-    double ydt = yaw_rate * delta_t;
-
-    double inc_x = vt * (sin(p.theta + ydt) - sin(p.theta));
-    double inc_y = vt * (cos(p.theta) - cos(p.theta + ydt));
-    double inc_theta = p.theta;
+    auto current_pose = std::vector<double>{p.x, p.y, p.theta};
+    auto predicted_pose = simple_predict(current_pose,  velocity, yaw_rate, delta_t);
 
     double noise_x = dist_x(gen);
     double noise_y = dist_y(gen);
     double noise_theta = dist_theta(gen);
 
-    p.x += (inc_x + noise_x);
-    p.y += (inc_y + noise_y);
-    p.theta += (inc_theta + noise_theta);
+    p.x = predicted_pose[0] + noise_x;
+    p.y = predicted_pose[1] + noise_y;
+    p.theta = predicted_pose[2] + noise_theta;
 
   }
 
-}
+  //printWeights();
 
+}
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
 
@@ -176,6 +219,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   // and the following is a good resource for the actual equation to implement (look at equation 3.33)
   // http://planning.cs.uiuc.edu/node99.html
 
+  std::cout << "UpdateWeights called\n";
+
   for (Particle& p : particles) {
 
     p.sense_x.clear();
@@ -184,13 +229,12 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
     for (const LandmarkObs& obs : observations) {
 
-      double x = cos(p.theta) * obs.x - sin(p.theta) * obs.y + p.x;
-      double y = sin(p.theta) * obs.x + cos(p.theta) * obs.y + p.y;
+      auto obs_t = transform(obs, p);
 
-      p.sense_x.push_back(x);
-      p.sense_y.push_back(y);
+      p.sense_x.push_back(obs_t.first);
+      p.sense_y.push_back(obs_t.second);
 
-      int assoc = findNearestLandmark(x, y, map_landmarks);
+      int assoc = findNearestLandmark(obs_t.first, obs_t.second, map_landmarks);
       p.associations.push_back(assoc);
 
     }
@@ -199,10 +243,15 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
   }
 
+  normalize();
+
+  //printWeights();
+
 }
 
-
 void ParticleFilter::resample() {
+
+  std::cout << "Resample called\n";
 
   // TODO: Has to be implemented
   // Resample particles with replacement with probability proportional to their weight.
@@ -222,6 +271,7 @@ void ParticleFilter::resample() {
   for (unsigned int i = 0; i < particles.size(); i++) {
 
     idx = distrib(gen);
+
     Particle p{particles[idx]};
 
     resampled_particles.push_back(p);
@@ -229,6 +279,8 @@ void ParticleFilter::resample() {
   }
 
   particles = resampled_particles;
+
+  //printWeights();
 
 }
 
@@ -279,4 +331,24 @@ std::string ParticleFilter::getSenseY(Particle best) {
   s = s.substr(0, s.length() - 1); // get rid of the trailing space
   return s;
 
+}
+
+void ParticleFilter::normalize() {
+
+  double w_sum = 0.;
+  for (Particle& p : particles) {
+    w_sum += p.weight;
+  }
+
+  for (Particle& p : particles) {
+    p.weight /= w_sum;
+  }
+
+}
+
+
+void ParticleFilter::printWeights() {
+  for (Particle& p : particles) {
+    std::cout << "(" << p.x << "," << p.y << ")" << p.weight << "\n";
+  }
 }

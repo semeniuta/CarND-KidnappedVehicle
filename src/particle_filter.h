@@ -23,6 +23,10 @@ struct Particle {
 
 };
 
+std::vector<double> simple_predict(const std::vector<double>& pose, double velocity, double yaw_rate, double delta_t);
+
+std::pair<double, double > transform(const LandmarkObs& obs, const Particle& p);
+
 int findNearestLandmark(const double& x_p, const double& y_p, const Map& map);
 
 double gaussian2D(double x, double y, double mu_x, double mu_y, double std_x, double std_y);
@@ -41,6 +45,9 @@ private:
 
   // Vector of weights of all particles
   std::vector<double> weights_;
+
+  void normalize();
+  void printWeights();
 
 public:
 
