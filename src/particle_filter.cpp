@@ -22,12 +22,28 @@ std::vector<double> simple_predict(const std::vector<double>& pose, double veloc
   double y = pose[1];
   double theta = pose[2];
 
-  double vt = velocity / yaw_rate;
-  double ydt = yaw_rate * delta_t;
+  double inc_x;
+  double inc_y;
+  double inc_theta;
 
-  double inc_x = vt * (sin(theta + ydt) - sin(theta));
-  double inc_y = vt * (cos(theta) - cos(theta + ydt));
-  double inc_theta = ydt;
+  if (fabs(yaw_rate) >= 0.001) {
+
+    double vt = velocity / yaw_rate;
+    double ydt = yaw_rate * delta_t;
+
+    inc_x = vt * (sin(theta + ydt) - sin(theta));
+    inc_y = vt * (cos(theta) - cos(theta + ydt));
+    inc_theta = ydt;
+
+  } else {
+
+    double vdt = velocity * delta_t;
+
+    inc_x = vdt * cos(theta);
+    inc_y = vdt * sin(theta);
+    inc_theta = 0;
+
+  }
 
   x += inc_x;
   y += inc_y;
@@ -96,11 +112,11 @@ void updateParticleWeight(Particle* p, const Map& map, double std_landmark_x, do
 
     p->weight *= prob;
 
-    std::cout << prob << ", " << p->weight << "\n";
+    //std::cout << prob << ", " << p->weight << "\n";
 
   }
 
-  std::cout << "=====\n";
+  //std::cout << "=====\n";
 
 }
 
@@ -115,7 +131,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
   std::cout << "Init called\n";
 
-  num_particles_ = 20;
+  num_particles_ = 200;
 
   std::default_random_engine gen{};
 
