@@ -34,6 +34,14 @@ double gaussian2D(double x, double y, double mu_x, double mu_y, double std_x, do
 
 void updateParticleWeight(Particle* p, const Map& map, double std_landmark_x, double std_landmark_y);
 
+double newParticleWeight(
+    const std::vector<int>& indices,
+    const std::vector<std::pair<double, double>>& sense,
+    const Map& map,
+    double std_landmark_x,
+    double std_landmark_y
+);
+
 class ParticleFilter {
 
 private:

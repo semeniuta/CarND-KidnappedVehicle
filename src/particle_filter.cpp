@@ -120,6 +120,33 @@ void updateParticleWeight(Particle* p, const Map& map, double std_landmark_x, do
 
 }
 
+double newParticleWeight(
+    const std::vector<int>& indices,
+    const std::vector<std::pair<double, double>>& sense,
+    const Map& map,
+    double std_landmark_x,
+    double std_landmark_y
+    ) {
+
+  double weight = 1.;
+
+  for (unsigned int i = 0; i < indices.size(); i++) {
+
+    int landmark_idx = indices[i];
+    auto landmark = map.landmark_list[landmark_idx];
+
+    double x = sense[i].first;
+    double y = sense[i].second;
+
+    double prob = gaussian2D(x, y, landmark.x_f, landmark.y_f, std_landmark_x, std_landmark_y);
+
+    weight *= prob;
+  }
+
+  return weight;
+
+}
+
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
@@ -171,8 +198,6 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   // http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
   // http://www.cplusplus.com/reference/random/default_random_engine/
 
-  std::cout << "Prediction called with yaw rate" << yaw_rate << "\n";
-
   double std_x = std_pos[0];
   double std_y = std_pos[1];
   double std_theta = std_pos[2];
@@ -212,31 +237,49 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   // and the following is a good resource for the actual equation to implement (look at equation 3.33)
   // http://planning.cs.uiuc.edu/node99.html
 
-  std::cout << "UpdateWeights called\n";
+//  for (Particle& p : particles) {
+//
+//    p.sense_x.clear();
+//    p.sense_y.clear();
+//    p.associations.clear();
+//
+//    for (const LandmarkObs& obs : observations) {
+//
+//      auto obs_t = transform(obs, p);
+//
+//      p.sense_x.push_back(obs_t.first);
+//      p.sense_y.push_back(obs_t.second);
+//
+//      int assoc = findNearestLandmark(obs_t.first, obs_t.second, map_landmarks);
+//      p.associations.push_back(assoc);
+//
+//    }
+//
+//    updateParticleWeight(&p, map_landmarks, std_landmark[0], std_landmark[1]);
+//
+//  }
+//
+//  normalize();
 
   for (Particle& p : particles) {
 
-    p.sense_x.clear();
-    p.sense_y.clear();
-    p.associations.clear();
+    std::vector<int> indices;
+    std::vector<std::pair<double, double>> sense;
 
     for (const LandmarkObs& obs : observations) {
 
       auto obs_t = transform(obs, p);
+      sense.push_back(obs_t);
 
-      p.sense_x.push_back(obs_t.first);
-      p.sense_y.push_back(obs_t.second);
-
-      int assoc = findNearestLandmark(obs_t.first, obs_t.second, map_landmarks);
-      p.associations.push_back(assoc);
+      int idx_nearest = findNearestLandmark(obs_t.first, obs_t.second, map_landmarks);
+      indices.push_back(idx_nearest);
 
     }
 
-    updateParticleWeight(&p, map_landmarks, std_landmark[0], std_landmark[1]);
+    double w = newParticleWeight(indices, sense, map_landmarks, std_landmark[0], std_landmark[1]);
+    p.weight = w;
 
   }
-
-  normalize();
 
 }
 
