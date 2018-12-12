@@ -79,6 +79,41 @@ int findNearestLandmark(const double& x_p, const double& y_p, const Map& map) {
 }
 
 
+int findNearestLandmarkWithRange(
+    const std::pair<double, double>& sense_xy,
+    const Map& map,
+    const Particle& p,
+    double range) {
+
+  std::vector<double> distances;
+  std::vector<int> indices;
+
+  for (unsigned int i = 0; i < map.landmark_list.size(); i++) {
+
+    auto landmark = map.landmark_list[i];
+
+    double dist_to_particle = dist(p.x, p.y, landmark.x_f, landmark.y_f);
+    if (dist_to_particle > range) {
+      continue;
+    }
+
+    double sense_x = sense_xy.first;
+    double sense_y = sense_xy.second;
+
+    double distance = dist(sense_x, sense_y, landmark.x_f, landmark.y_f);
+
+    distances.push_back(distance);
+    indices.push_back(i);
+
+  }
+
+  auto nearest = std::min_element(distances.begin(), distances.end()) - distances.begin();
+
+  return indices[nearest];
+
+}
+
+
 double gaussian2D(double x, double y, double mu_x, double mu_y, double std_x, double std_y) {
 
   long double a = 1. / (2. * M_PI * std_x * std_y);
@@ -241,7 +276,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       p.sense_x.push_back(obs_t.first);
       p.sense_y.push_back(obs_t.second);
 
-      int idx_nearest = findNearestLandmark(obs_t.first, obs_t.second, map_landmarks);
+      int idx_nearest = findNearestLandmarkWithRange(obs_t, map_landmarks, p, sensor_range);
       indices.push_back(idx_nearest);
 
       int obs_id = map_landmarks.landmark_list[idx_nearest].id_i;

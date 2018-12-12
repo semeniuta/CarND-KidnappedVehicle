@@ -30,6 +30,13 @@ std::pair<double, double > transform(const LandmarkObs& obs, const Particle& p);
 
 int findNearestLandmark(const double& x_p, const double& y_p, const Map& map);
 
+int findNearestLandmarkWithRange(
+    const std::pair<double, double>& sense_xy,
+    const Map& map,
+    const Particle& p,
+    double range
+);
+
 double gaussian2D(double x, double y, double mu_x, double mu_y, double std_x, double std_y);
 
 void updateParticleWeight(Particle* p, const Map& map, double std_landmark_x, double std_landmark_y);
