@@ -45,7 +45,15 @@ int main() {
     std::cout << obs_t.first << ", " << obs_t.second << "->" << nearest << std::endl;
   }
 
-  newParticleWeight(indices, sense, landmarks, 0.3, 0.3);
+  auto obs_probabilites = observationsProbabilities(indices, sense, landmarks, 0.3, 0.3);
+  p.weight = newParticleWeight(obs_probabilites);
+
+  std::cout << "Expected probabilities of observations\n";
+  for (auto p : obs_probabilites) {
+    std::cout << p << std::endl;
+  }
+
+  std::cout << "Particle weight: " << p.weight << std::endl;
 
   // Expected probabilities of observations:
   // 6.84e-03
@@ -60,7 +68,7 @@ int main() {
   double yawd = M_PI / 8;
   auto before_predict_pose = std::vector<double>{102, 65, 5 * M_PI / 8};
 
-  auto predicted = simple_predict(before_predict_pose, v, yawd, dt);
+  auto predicted = simplePredict(before_predict_pose, v, yawd, dt);
 
   std::cout << "Predicted:\n";
   for (const double& val : predicted) {

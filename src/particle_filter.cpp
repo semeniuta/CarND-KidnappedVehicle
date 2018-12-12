@@ -16,7 +16,7 @@
 
 #include "particle_filter.h"
 
-std::vector<double> simple_predict(const std::vector<double>& pose, double velocity, double yaw_rate, double delta_t) {
+std::vector<double> simplePredict(const std::vector<double>& pose, double velocity, double yaw_rate, double delta_t) {
 
   double x = pose[0];
   double y = pose[1];
@@ -96,15 +96,15 @@ double gaussian2D(double x, double y, double mu_x, double mu_y, double std_x, do
 }
 
 
-double newParticleWeight(
+std::vector<double> observationsProbabilities(
     const std::vector<int>& indices,
     const std::vector<std::pair<double, double>>& sense,
     const Map& map,
     double std_landmark_x,
     double std_landmark_y
-    ) {
+) {
 
-  double weight = 1.;
+  std::vector<double> obs_probabilites;
 
   for (unsigned int i = 0; i < indices.size(); i++) {
 
@@ -115,16 +115,25 @@ double newParticleWeight(
     double y = sense[i].second;
 
     double prob = gaussian2D(x, y, landmark.x_f, landmark.y_f, std_landmark_x, std_landmark_y);
+    obs_probabilites.push_back(prob);
 
-    weight *= prob;
-
-    std::cout << prob << ", " << weight << "\n";
   }
 
-  return weight;
+  return obs_probabilites;
 
 }
 
+double newParticleWeight(const std::vector<double>& obs_probabilites) {
+
+  double weight = 1.;
+
+  for (double prob : obs_probabilites) {
+    weight *= prob;
+  }
+
+  return  weight;
+
+}
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
@@ -187,7 +196,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   for (Particle& p : particles) {
 
     auto current_pose = std::vector<double>{p.x, p.y, p.theta};
-    auto predicted_pose = simple_predict(current_pose,  velocity, yaw_rate, delta_t);
+    auto predicted_pose = simplePredict(current_pose, velocity, yaw_rate, delta_t);
 
     double noise_x = dist_x(random_engine_);
     double noise_y = dist_y(random_engine_);
@@ -240,8 +249,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
     }
 
-    double w = newParticleWeight(indices, sense, map_landmarks, std_landmark[0], std_landmark[1]);
-    p.weight = w;
+    auto obs_probabilites = observationsProbabilities(indices, sense, map_landmarks, std_landmark[0], std_landmark[1]);
+    p.weight = newParticleWeight(obs_probabilites);
 
   }
 

@@ -24,7 +24,7 @@ struct Particle {
 
 };
 
-std::vector<double> simple_predict(const std::vector<double>& pose, double velocity, double yaw_rate, double delta_t);
+std::vector<double> simplePredict(const std::vector<double>& pose, double velocity, double yaw_rate, double delta_t);
 
 std::pair<double, double > transform(const LandmarkObs& obs, const Particle& p);
 
@@ -34,13 +34,15 @@ double gaussian2D(double x, double y, double mu_x, double mu_y, double std_x, do
 
 void updateParticleWeight(Particle* p, const Map& map, double std_landmark_x, double std_landmark_y);
 
-double newParticleWeight(
+std::vector<double> observationsProbabilities(
     const std::vector<int>& indices,
     const std::vector<std::pair<double, double>>& sense,
     const Map& map,
     double std_landmark_x,
     double std_landmark_y
 );
+
+double newParticleWeight(const std::vector<double>& obs_probabilites);
 
 class ParticleFilter {
 
