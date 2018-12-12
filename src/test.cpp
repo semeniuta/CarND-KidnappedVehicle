@@ -28,6 +28,9 @@ int main() {
   p.y = 5;
   p.theta = -M_PI / 2;
 
+  std::vector<int> indices;
+  std::vector<std::pair<double, double>> sense;
+
   std::cout << "Transformed observations:\n";
 
   for (const LandmarkObs& obs : observations) {
@@ -36,14 +39,13 @@ int main() {
 
     int nearest = findNearestLandmark(obs_t.first, obs_t.second, landmarks);
 
-    p.sense_x.push_back(obs_t.first);
-    p.sense_y.push_back(obs_t.second);
-    p.associations.push_back(nearest);
+    indices.push_back(nearest);
+    sense.push_back(obs_t);
 
     std::cout << obs_t.first << ", " << obs_t.second << "->" << nearest << std::endl;
   }
 
-  updateParticleWeight(&p, landmarks, 0.3, 0.3);
+  newParticleWeight(indices, sense, landmarks, 0.3, 0.3);
 
   // Expected probabilities of observations:
   // 6.84e-03

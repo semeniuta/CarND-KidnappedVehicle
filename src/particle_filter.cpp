@@ -96,30 +96,6 @@ double gaussian2D(double x, double y, double mu_x, double mu_y, double std_x, do
 }
 
 
-void updateParticleWeight(Particle* p, const Map& map, double std_landmark_x, double std_landmark_y) {
-
-  p->weight = 1.;
-
-  for (unsigned int i = 0; i < p->associations.size(); i++) {
-
-    int landmark_idx = p->associations[i];
-    auto landmark = map.landmark_list[landmark_idx];
-
-    double x = p->sense_x[i];
-    double y = p->sense_y[i];
-
-    double prob = gaussian2D(x, y, landmark.x_f, landmark.y_f, std_landmark_x, std_landmark_y);
-
-    p->weight *= prob;
-
-    //std::cout << prob << ", " << p->weight << "\n";
-
-  }
-
-  //std::cout << "=====\n";
-
-}
-
 double newParticleWeight(
     const std::vector<int>& indices,
     const std::vector<std::pair<double, double>>& sense,
@@ -141,6 +117,8 @@ double newParticleWeight(
     double prob = gaussian2D(x, y, landmark.x_f, landmark.y_f, std_landmark_x, std_landmark_y);
 
     weight *= prob;
+
+    std::cout << prob << ", " << weight << "\n";
   }
 
   return weight;
@@ -237,31 +215,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   // and the following is a good resource for the actual equation to implement (look at equation 3.33)
   // http://planning.cs.uiuc.edu/node99.html
 
-//  for (Particle& p : particles) {
-//
-//    p.sense_x.clear();
-//    p.sense_y.clear();
-//    p.associations.clear();
-//
-//    for (const LandmarkObs& obs : observations) {
-//
-//      auto obs_t = transform(obs, p);
-//
-//      p.sense_x.push_back(obs_t.first);
-//      p.sense_y.push_back(obs_t.second);
-//
-//      int assoc = findNearestLandmark(obs_t.first, obs_t.second, map_landmarks);
-//      p.associations.push_back(assoc);
-//
-//    }
-//
-//    updateParticleWeight(&p, map_landmarks, std_landmark[0], std_landmark[1]);
-//
-//  }
-//
-//  normalize();
-
   for (Particle& p : particles) {
+
+    p.sense_x.clear();
+    p.sense_y.clear();
+    p.associations.clear();
 
     std::vector<int> indices;
     std::vector<std::pair<double, double>> sense;
@@ -271,8 +229,14 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       auto obs_t = transform(obs, p);
       sense.push_back(obs_t);
 
+      p.sense_x.push_back(obs_t.first);
+      p.sense_y.push_back(obs_t.second);
+
       int idx_nearest = findNearestLandmark(obs_t.first, obs_t.second, map_landmarks);
       indices.push_back(idx_nearest);
+
+      int obs_id = map_landmarks.landmark_list[idx_nearest].id_i;
+      p.associations.push_back(obs_id);
 
     }
 
