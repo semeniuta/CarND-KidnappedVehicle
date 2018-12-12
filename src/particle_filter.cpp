@@ -130,8 +130,6 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
   num_particles_ = 100;
 
-  std::default_random_engine gen{};
-
   double std_x = std[0];
   double std_y = std[1];
   double std_theta = std[2];
@@ -144,9 +142,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
   for (int i = 0; i < num_particles_; i++) {
 
-    sample_x = dist_x(gen);
-    sample_y = dist_y(gen);
-    sample_theta = dist_theta(gen);
+    sample_x = dist_x(random_engine_);
+    sample_y = dist_y(random_engine_);
+    sample_theta = dist_theta(random_engine_);
 
     Particle p;
     p.id = i;
@@ -175,8 +173,6 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
   std::cout << "Prediction called with yaw rate" << yaw_rate << "\n";
 
-  std::default_random_engine gen{};
-
   double std_x = std_pos[0];
   double std_y = std_pos[1];
   double std_theta = std_pos[2];
@@ -190,9 +186,9 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     auto current_pose = std::vector<double>{p.x, p.y, p.theta};
     auto predicted_pose = simple_predict(current_pose,  velocity, yaw_rate, delta_t);
 
-    double noise_x = dist_x(gen);
-    double noise_y = dist_y(gen);
-    double noise_theta = dist_theta(gen);
+    double noise_x = dist_x(random_engine_);
+    double noise_y = dist_y(random_engine_);
+    double noise_theta = dist_theta(random_engine_);
 
     p.x = predicted_pose[0] + noise_x;
     p.y = predicted_pose[1] + noise_y;
@@ -255,14 +251,13 @@ void ParticleFilter::resample() {
     current_weights.push_back(p.weight);
   }
 
-  std::default_random_engine gen{};
   std::discrete_distribution<int> distrib{current_weights.begin(), current_weights.end()};
 
   std::vector<Particle> resampled_particles;
   int idx;
   for (unsigned int i = 0; i < particles.size(); i++) {
 
-    idx = distrib(gen);
+    idx = distrib(random_engine_);
 
     Particle p{particles[idx]};
 

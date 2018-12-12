@@ -9,6 +9,7 @@
 #define PARTICLE_FILTER_H_
 
 #include "helper_functions.h"
+#include <random>
 
 struct Particle {
 
@@ -46,6 +47,8 @@ private:
   // Vector of weights of all particles
   std::vector<double> weights_;
 
+  std::default_random_engine random_engine_;
+
   void normalize();
   void printWeights();
 
@@ -56,7 +59,10 @@ public:
 
   // Constructor
   // @param num_particles_ Number of particles
-  ParticleFilter() : num_particles_(0), is_initialized_(false) {}
+  ParticleFilter() : num_particles_(0), is_initialized_(false) {
+    std::random_device rd{};
+    random_engine_ = std::default_random_engine{rd()};
+  }
 
   // Destructor
   ~ParticleFilter() = default;
